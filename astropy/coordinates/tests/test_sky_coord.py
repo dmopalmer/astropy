@@ -601,6 +601,16 @@ def test_position_angle():
     assert cicrs.position_angle(cfk5) > 90.0 * u.deg
     assert cicrs.position_angle(cfk5) < 91.0 * u.deg
 
+    # regression check for bug in #5702
+    cfk5B1950 = SkyCoord(1*u.deg, 0*u.deg, frame='fk5', equinox='B1950')
+    # test with both default and explicit equinox #5722 and #3106
+    for cfk5J2000 in (SkyCoord(1*u.deg, 0*u.deg, frame='fk5', equinox='J2000'),
+                      SkyCoord(1 * u.deg, 0 * u.deg, frame='fk5')):
+        posang_forward = cfk5.position_angle(cfk5B1950)
+        posang_backward = cfk5B1950.position_angle(cfk5)
+        assert posang_forward.degree != 0 and posang_backward.degree != 0
+        assert 179 < (posang_forward - posang_backward).wrap_at(360*u.deg).degree < 181
+
 
 def test_position_angle_directly():
     """Regression check for #3800: position_angle should accept floats."""
@@ -608,6 +618,28 @@ def test_position_angle_directly():
     result = position_angle(10., 20., 10., 20.)
     assert result.unit is u.radian
     assert result.value == 0.
+
+
+def test_offset_by():
+    npoints = 7 # How many points when doing vectors of SkyCoords
+    for sc1 in [SkyCoord(1*u.deg,2*u.deg),
+                SkyCoord(np.linspace(5,359,npoints),np.linspace(-89.9, 89.9,npoints), unit=u.deg, frame='fk4'),
+                SkyCoord(np.linspace(-3,3,npoints),np.linspace(-89.9, 89.9,npoints), unit=(u.rad, u.deg), frame='barycentrictrueecliptic')]:
+        for sc2 in [SkyCoord(5*u.deg,10*u.deg),
+                    SkyCoord(np.linspace(5, 359, npoints), np.linspace(-90, 90, npoints), unit=u.deg, frame='galactic')]:
+            # Find the displacement from sc1 to sc2, then do the offset from sc1 and verify that you are at sc2
+            posang,sep = sc1.directional_offsets_to(sc2)
+            sc2a = sc1.offset_by(position_angle=posang, separation=sep)
+            assert np.max(np.abs(sc2.separation(sc2a).arcsec)) < 1e-3
+            # FIXME
+            # I thought that spherical_offsets_to just gave the dra,ddec .
+            # Instead it makes a new frame and does the full calculation
+            # so coordinate offsets are poor substitutes
+            # dlon,dlat = sc1.spherical_offsets_to(sc2)
+            # sc2b = sc1.offset_by(dlon=dlon, dlat=dlat)
+            # assert np.max(np.abs(sc2.separation(sc2b).arcsec)) < 1e-3
+            # sc2c = sc1.offset_by(dra_distance=dlon * np.cos(sc1.lat), ddec=dlat)
+            # assert np.max(np.abs(sc2.separation(sc2c).arcsec)) < 1e-3
 
 
 def test_table_to_coord():
@@ -901,6 +933,16 @@ def test_frame_attr_transform_inherit():
     c2 = c.transform_to(FK5(equinox='J1990'))
     assert c2.equinox.value == 'J1990.000'
     assert c2.obstime.value == 'J1980.000'
+
+    # The work-around for #5722
+    c  = SkyCoord(1 * u.deg, 2 * u.deg, frame='fk5')
+    c1 = SkyCoord(1 * u.deg, 2 * u.deg, frame='fk5', equinox='B1950.000')
+    c2 = c1.transform_to(c)
+    assert not c2.is_equivalent_frame(c) # counterintuitive, but documented
+    assert c2.equinox.value == 'B1950.000'
+    c3 = c1.transform_to(c, accepting_defaults=True)
+    assert c3.equinox.value == 'J2000.000'
+    assert c3.is_equivalent_frame(c)
 
 
 def test_deepcopy():
