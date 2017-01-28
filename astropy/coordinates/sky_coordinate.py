@@ -893,11 +893,6 @@ class SkyCoord(ShapedLikeNDArray):
         the results of spherical_offset_to
         """
 
-        # FIXME spherical coordinate offsets need to be reworked.
-        # FIXME behavior starting at pole must be
-        # defined and harmonized between this function and the
-        # position_angle function
-
         if dra is not None: dlon = dra
         if dra_distance is not None: dlon_distance = dra_distance
         if ddec is not None: dlat = ddec

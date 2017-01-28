@@ -622,11 +622,14 @@ def test_position_angle_directly():
 
 def test_offset_by():
     npoints = 7 # How many points when doing vectors of SkyCoords
-    for sc1 in [SkyCoord(1*u.deg,2*u.deg),
-                SkyCoord(np.linspace(5,359,npoints),np.linspace(-89.9, 89.9,npoints), unit=u.deg, frame='fk4'),
-                SkyCoord(np.linspace(-3,3,npoints),np.linspace(-89.9, 89.9,npoints), unit=(u.rad, u.deg), frame='barycentrictrueecliptic')]:
+    for sc1 in [SkyCoord(0*u.deg,-90*u.deg),    # South pole
+                SkyCoord(0 * u.deg, 90 * u.deg), # North pole
+                SkyCoord(1*u.deg,2*u.deg),
+                SkyCoord(np.linspace(0,359,npoints),np.linspace(-90, 90,npoints), unit=u.deg, frame='fk4'),
+                SkyCoord(np.linspace(359,0,npoints),np.linspace(-90, 90,npoints), unit=u.deg, frame='icrs'),
+                SkyCoord(np.linspace(-3,3,npoints),np.linspace(-90, 90,npoints), unit=(u.rad, u.deg), frame='barycentrictrueecliptic')]:
         for sc2 in [SkyCoord(5*u.deg,10*u.deg),
-                    SkyCoord(np.linspace(5, 359, npoints), np.linspace(-90, 90, npoints), unit=u.deg, frame='galactic')]:
+                    SkyCoord(np.linspace(0, 359, npoints), np.linspace(-90, 90, npoints), unit=u.deg, frame='galactic')]:
             # Find the displacement from sc1 to sc2, then do the offset from sc1 and verify that you are at sc2
             posang,sep = sc1.directional_offsets_to(sc2)
             sc2a = sc1.offset_by(position_angle=posang, separation=sep)
