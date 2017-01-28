@@ -620,7 +620,7 @@ def test_position_angle_directly():
     assert result.value == 0.
 
 
-def test_offset_by():
+def test_directional_offset_by():
     npoints = 7 # How many points when doing vectors of SkyCoords
     for sc1 in [SkyCoord(0*u.deg,-90*u.deg),    # South pole
                 SkyCoord(0 * u.deg, 90 * u.deg), # North pole
@@ -632,17 +632,8 @@ def test_offset_by():
                     SkyCoord(np.linspace(0, 359, npoints), np.linspace(-90, 90, npoints), unit=u.deg, frame='galactic')]:
             # Find the displacement from sc1 to sc2, then do the offset from sc1 and verify that you are at sc2
             posang,sep = sc1.directional_offsets_to(sc2)
-            sc2a = sc1.offset_by(position_angle=posang, separation=sep)
+            sc2a = sc1.directional_offset_by(position_angle=posang, separation=sep)
             assert np.max(np.abs(sc2.separation(sc2a).arcsec)) < 1e-3
-            # FIXME
-            # I thought that spherical_offsets_to just gave the dra,ddec .
-            # Instead it makes a new frame and does the full calculation
-            # so coordinate offsets are poor substitutes
-            # dlon,dlat = sc1.spherical_offsets_to(sc2)
-            # sc2b = sc1.offset_by(dlon=dlon, dlat=dlat)
-            # assert np.max(np.abs(sc2.separation(sc2b).arcsec)) < 1e-3
-            # sc2c = sc1.offset_by(dra_distance=dlon * np.cos(sc1.lat), ddec=dlat)
-            # assert np.max(np.abs(sc2.separation(sc2c).arcsec)) < 1e-3
 
 
 def test_table_to_coord():

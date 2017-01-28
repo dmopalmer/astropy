@@ -773,7 +773,7 @@ class SkyCoord(ShapedLikeNDArray):
         Parameters
         ----------
         tocoord : `~astropy.coordinates.BaseCoordinateFrame`
-            The coordinate to offset to.
+            The coordinate to find the offset to.
 
         Returns
         -------
@@ -800,7 +800,9 @@ class SkyCoord(ShapedLikeNDArray):
 
         See Also
         --------
-        separation : for the *total* angular offset (not broken out into components)
+        separation : for the *total* angular offset (not broken out into components).
+        position_angle : for the direction of the offset.
+        directional_offsets_to : for both position_angle and separation.
 
         """
         if not self.is_equivalent_frame(tocoord):
@@ -813,37 +815,38 @@ class SkyCoord(ShapedLikeNDArray):
         dlat = acoord.spherical.lat.view(Angle)
         return dlon, dlat
 
-    def directional_offsets_to(self, other):
+    def directional_offsets_to(self, tocoord):
         r"""
-        Computes direction and distance to go *from* this coordinate *to* another
+        Computes direction and distance to go *from* this coordinate *to* another.
 
         Parameters
         ----------
-        tocoord : `~astropy.coordinates.BaseCoordinateFrame`
-            The coordinate to offset to.
+        tocoord : `~astropy.coordinates.BaseCoordinateFrame` or `~astropy.coordinates.SkyCoord`
+            The coordinate to find the offset to.
 
         Returns
         -------
         position_angle : `~astropy.coordinates.Angle`
             The (positive) position angle of the vector pointing from ``self``
-            to ``other``.
+            to ``tocoord``.
         separation : `~astropy.coordinates.Angle`
-            The distance between ``self`` and ``other``.
+            The distance between ``self`` and ``tocoord``.
 
-        If either ``self`` or ``other`` contain arrays, these will be a
+        If either ``self`` or ``tocoord`` contain arrays, these will be a
         arrays following the appropriate `numpy` broadcasting rules.
 
         See Also
         --------
-        position_angle : for the postion_angle component
-        separation : for the angular offset component
-        offset_by : use offset to go from a coordinate to a new coordinate
+        position_angle : for the postion_angle component.
+        separation : for the angular offset component.
+        directional_offset_by : use offset to go from a coordinate to a new coordinate.
+
         """
 
-        if self.is_equivalent_frame(other):
-            other_in_self_frame = other
+        if self.is_equivalent_frame(tocoord):
+            other_in_self_frame = tocoord
         else:
-            other_in_self_frame = other.frame.transform_to(self.frame)
+            other_in_self_frame = tocoord.frame.transform_to(self.frame)
 
         slat = self.represent_as(UnitSphericalRepresentation).lat
         slon = self.represent_as(UnitSphericalRepresentation).lon
@@ -854,69 +857,44 @@ class SkyCoord(ShapedLikeNDArray):
         separation = angle_utilities.angular_separation(slon, slat, olon, olat)
         return Angle(posang), Angle(separation)
 
-    def offset_by(self, position_angle=None, separation=None,
-                  dra=None, dra_distance=None, ddec=None,
-                  dlon=None, dlon_distance=None, dlat=None):
+    def directional_offset_by(self, position_angle, separation):
         r"""
-        Computes coordinates at the given offset from this coordinate
+        Computes coordinates at the given offset from this coordinate.
 
         Parameters
         ----------
         All parameters are `~astropy.coordinates.Angle` or float,
         where float values are radians.
 
-        Directional offset parameters:
-        position_angle : position_angle of offset
-        separation : offset distance
-
-        Spherical coordinate parameters:
-        dra : offset in the ra coordinate
-        dra_distance : offset in the ra direction (equivalent to dra/cos(dec))
-        ddec : offset in the declination coordinate
-
-        Synonyms:
-        dlon : synonym for dra
-        dlon_distance : synonym for dra_distance
-        dlat : synonym for ddec
+        position_angle : position_angle of offset.
+        separation : offset distance.
 
         Returns
         -------
-        newpoints : SkyCoord offset by the given values
-            `numpy` broadcasting rules apply if self or any arguments are arrays
+        newpoints : SkyCoord offset by the given values.
+            `numpy` broadcasting rules apply if self or any arguments are arrays.
 
         Notes
         -----
-        Only a directional offset pair (position_angle,separation) or
-        spherical coordinate offset pair (dra*/dlon*, ddec/dlat) may be used.
+        Returned SkyCoord frame retains only those parameters specific
+        to the frame type.  (e.g. if the input frame is `ICRS`, an `equinox`
+        value will be retained, but an `obstime` will not.)
 
-        The spherical coordinate offset pair is only approximately equal to
-        the results of spherical_offset_to
+        For a more complete set of transform offsets, use the `WCS` framework.
+        `SkyOffsetFrame` can also be used to create a spherical frame with
+        (lat=0,lon=0) at a reference point, approximating an xy cartesian
+        system for small offsets.
+
         """
-
-        if dra is not None: dlon = dra
-        if dra_distance is not None: dlon_distance = dra_distance
-        if ddec is not None: dlat = ddec
-
         slat = self.represent_as(UnitSphericalRepresentation).lat
         slon = self.represent_as(UnitSphericalRepresentation).lon
 
-        if dlat is not None:
-            newlat = slat + dlat
-            if dlon_distance is not None:
-                # Adjust based on the original latitude
-                newlon = slon + dlon_distance/np.cos(slat)
-            else:
-                newlon = slon + dlon
-        else:
-            newlon,newlat = angle_utilities.offset_by(
-                lon=slon, lat=slat,
-                posang=position_angle, distance=separation)
+        newlon,newlat = angle_utilities.offset_by(
+            lon=slon, lat=slat,
+            posang=position_angle, distance=separation)
 
-        result = SkyCoord(newlon, newlat, frame=self.frame
-                          # FIXME: copy all of the non-frame attributes such as obstime and pressure
-                          )
+        result = SkyCoord(newlon, newlat, frame=self.frame)
         return result
-
 
     def match_to_catalog_sky(self, catalogcoord, nthneighbor=1):
         """
