@@ -88,12 +88,16 @@ API Changes
 
 - ``astropy.stats``
 
-  Removed the deprecated ``sig`` and ``varfunc`` keywords in the
-  ``sigma_clip`` function. [#5715]
+  - Removed the deprecated ``sig`` and ``varfunc`` keywords in the
+    ``sigma_clip`` function. [#5715]
 
 - ``astropy.sphinx``
 
 - ``astropy.table``
+  - Removed the deprecated ``data`` property of Row. [#5729]
+
+  - Removed the deprecated functions ``join``, ``hstack``, ``vstack`` and
+    ``get_groups`` from np_utils. [#5729]
 
 - ``astropy.time``
 
@@ -197,6 +201,8 @@ Bug Fixes
     ``PyMem_Realloc()`` [#5696, #4739, #2100]
 
 - ``astropy.modeling``
+ 
+  - Fixed a problem with setting ``bounding_box`` on 1D models. [#5718]
 
 - ``astropy.nddata``
 
@@ -204,6 +210,9 @@ Bug Fixes
 
   - Fix the psd normalization for Lomb-Scargle periodograms in the presence
     of noise [#5713]
+
+  - Fix bug in the autofrequency range when ``minimum_frequency`` is specified
+    but ``maximum_frequency`` is not [#5738]
 
 - ``astropy.sphinx``
 
@@ -225,6 +234,8 @@ Bug Fixes
 - ``astropy.wcs``
 
 - ``astropy.extern``
+
+  - Fixed a bug where PLY was overwriting its generated files. [#5728]
 
 Other Changes and Additions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
